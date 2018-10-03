@@ -1,0 +1,23 @@
+{
+  "name": "cis445",
+  "version": "1.0.0",
+  "description": "This is my assignment 1",
+  "main": "app.js",
+  "scripts": {
+    "test": "\"echo \\\"No test specified\\\" && exit 1\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmartinez12/cis445.git"
+  },
+  "author": "bellamartinez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bmartinez12/cis445/issues"
+  },
+  "homepage": "https://github.com/bmartinez12/cis445#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3"
+  }
+}
