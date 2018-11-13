@@ -5,41 +5,212 @@ var app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.get("/index.html", function (req, res) {
- res.sendFile( __dirname + "/"+ "index.html" );
-})
+const mongoClient = require('mongodb').MongoClient; // initializes the mongodb library and gets a client object
 
-app.get("/review/:reviewid", function(req, res) {
- let reviewid = req.params.reviewid;
- res.send("The following is a review for the fidget spinner. The review id number is: " + reviewid);
-});
+mongoClient.connect("mongodb://omega.unasec.info:27017", function(err, client) { 
 
-app.get("/review/:n/:stars", function(req, res) {
- let stars = req.params.stars;
- let n = req.params.n;
- res.send("/The following is a review for the " + n + ". It received: " + stars + " stars.");
-});
 
-app.get("/review/:n/:from_date/:to_date", function(req, res) {
- let n = req.params.n;
- let from_date = req.params.from_date;
- let to_date = req.params.to_date;
- res.send("The following reviews are for " + n + " from " + from_date + " to " + to_date);
-});
+  if(!err) {
 
-app.delete("/review/:reviewid", function(req, res) {
- let reviewid = req.params.reviewid;
- res.send("The following review has been deleted. The review id number is: " + reviewid);
-});
+    const collection = client.db('amazon').collection('reviews');
 
-app.post("/review/:reviewid", function(req, res){
- console.log(req.body);
- res.send("Here is your new review");
-});
+    console.log("We are connected to mongodb...");
 
-app.put("/review/:reviewid", function(req, res){
- console.log(req.body);
- res.send("Here is your updated review");
-});
+    app.get("/review/:reviewid", function(req, res) {
+        console.log("I got a request");
+        let reviewid = req.params.reviewid;
+        
+        collection.aggregate([{$match: {"review.id": reviewid}}]).toArray(function(err, results) { // callback arguments are err or an array of results
 
-app.listen(8080);
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     }); 
+    });
+    
+    app.get("/review/random/:n/:stars", function(req, res) {
+        console.log("I got a request");
+        let stars = req.params.stars;
+        let n = req.params.n;
+        
+        collection.aggregate([
+            {$match: {"review.star_rating": stars}}
+            
+            ]).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     });
+    });
+    
+    app.get("/review/:n/:from_date/:to_date", function(req, res) {
+        console.log("I got a request");
+        let from_date = req.params.from_date;
+        let to_date = req.params.to_date;
+        let n = req.params.n;
+        
+        let from = new Date(from_date);
+        let to = new Date(to_date);
+        
+        collection.aggregate([
+            {$match: {
+              $and: [
+                {"review.date" : { "$gte"  :  to}},  
+                {"review.date" : { "$lte" : from}}
+              ]
+            }}
+            
+            ]).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     });
+    });
+    
+    app.delete("/review/:reviewid", function(req, res) {
+        console.log("I got a request");
+        let reviewid = req.params.reviewid;
+        
+        collection.deleteOne(
+            { "review.id" : { $eq: reviewid } } 
+            
+            ).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+            
+        res.send("The following review has been deleted. The review id number is: " + reviewid);
+        res.end();
+
+            });
+    });
+    
+    app.post("/review/:reviewid", function(req, res) {
+        console.log(req.body);
+        let reviewid = req.params.reviewid;
+        db.products.insertOne( { "review.id": reviewid} );
+
+        res.end();
+        
+    });
+    
+    app.put("/review/:reviewid", function(req, res) {
+        console.log("I got a request");
+        let reviewid = req.params.reviewid;
+        
+        collection.update(
+            {"review.id": reviewid},
+            { $set: {"review.body": "Your body was updated"} }
+            
+            ).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     }); 
+    });
+    
+    app.get("/review/:from/:to", function(req, res) {
+        console.log("I got a request");
+        let from_date = req.params.from;
+        let to_date = req.params.to;
+        let n = req.params.n;
+        
+        let from = new Date(from_date);
+        let to = new Date(to_date);
+        
+        collection.aggregate([
+            {$match: {
+              $and: [
+                {"review.date" : { "$gte"  :  to}},  
+                {"review.date" : { "$lte" : from}}
+              ]
+            }},
+            {  $group : {
+                _id: null,
+                averageStar: {$avg : "$review.star_rating"}
+                }
+            }
+            
+            ]).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     }); 
+    });
+    
+    app.get("review/helpful/:prodid", function(req, res) {
+        console.log("I got a request");
+        let prodid = req.params.prodid;
+        
+        collection.aggregate([
+            {$match: {"product.id": prodid}},
+            {$group : {
+                _id: null,
+                averageVotes: {$avg : "$votes.helpful_votes"}
+                }
+            }
+            ]).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     });
+    });
+    
+    app.get("review/helpful/:custid", function(req, res) {
+        console.log("I got a request");
+        let custid = req.params.custid;
+        
+        collection.aggregate([
+            {$match: {"customer_id": custid}},
+            {$group : {
+                _id: "$product.category",
+                averageStar: {$avg : "$votes.helpful_votes"},
+                averageVotes: {$avg : "$votes.helpful_votes"}
+                }
+            }
+            ]).toArray(function(err, results) { // callback arguments are err or an array of results
+
+                for(var i = 0; i < results.length; i++) {
+                   console.log(results[i]);
+                   res.send(results[i]);  
+                }
+
+        res.end();
+
+     });
+    });
+    
+  app.listen(8080);
+  } // end if !err
+}); // end mongo connect callback
