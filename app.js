@@ -195,7 +195,7 @@ mongoClient.connect("mongodb://omega.unasec.info:27017", function(err, client) {
             {$match: {"customer_id": custid}},
             {$group : {
                 _id: "$product.category",
-                averageStar: {$avg : "$votes.helpful_votes"},
+                averageStar: {$avg : "$votes.star_rating"},
                 averageVotes: {$avg : "$votes.helpful_votes"}
                 }
             }
@@ -214,3 +214,4 @@ mongoClient.connect("mongodb://omega.unasec.info:27017", function(err, client) {
   app.listen(8080);
   } // end if !err
 }); // end mongo connect callback
+
